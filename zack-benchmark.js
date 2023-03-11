@@ -2,7 +2,7 @@ const cp = require('child_process');
 const path = require('path');
 const os = require('os');
 
-const NUMBER_OF_RUNS = 10;
+const NUMBER_OF_RUNS = 100;
 
 function message(m) {
   console.log('------------------------');
@@ -52,16 +52,24 @@ function runNxVersion(version) {
 
   message(`running nx@${nxVersion} ${NUMBER_OF_RUNS} times`);
   let nxTime = 0;
+  const details = [];
   for (let i = 0; i < NUMBER_OF_RUNS; ++i) {
     cleanFolders();
     const b = new Date();
-    spawnSync('nx', ['run-many', '--target=build', '--all', '--parallel', 10]);
+    const { stdout } = cp.spawnSync(
+      'nx',
+      ['run-many', '--target=build', '--all', '--parallel', 10],
+      { env: { ...process.env, NX_PERF_LOGGING: 'true' } }
+    );
     const a = new Date();
     nxTime += a.getTime() - b.getTime();
+
     console.log(`The command ran in ${a.getTime() - b.getTime()}ms`);
+    details.push(parseOutput(stdout.toString()));
   }
   const averageNxTime = nxTime / NUMBER_OF_RUNS;
-  results[nxVersion] = averageNxTime;
+  results[nxVersion] = averageResults(details);
+  results[nxVersion].commandWallTime = averageNxTime;
 
   // message('prepping lerna');
   // spawnSync('lerna', ['run', 'build', `--concurrency=3`]);
@@ -118,6 +126,46 @@ const versions = [
 for (const version of versions) {
   runNxVersion(version);
 }
-for (const [installedVersion, averageNxTime] of Object.entries(results)) {
-  console.log(`nx@${installedVersion}: ${averageNxTime}ms`);
+// for (const [installedVersion, averageNxTime] of Object.entries(results)) {
+//   console.log(`nx@${installedVersion}:`, results);
+// }
+
+console.log('results');
+console.log(JSON.stringify(results, null, 2));
+
+function parseOutput(output) {
+  console.log(`===== parsing output =====`);
+  const lines = output.split('\n');
+  const linesWithTime = lines.filter((l) => l.startsWith('Time for '));
+  const result = {};
+  for (const line of linesWithTime) {
+    const foo = line.split(`'`);
+    console.log(foo);
+    const [_, name, time] = line.split(`'`);
+    let propName = name;
+    let count = 0;
+    while (result[propName]) {
+      count++;
+      propName = `${name} [${count}]`;
+    }
+    result[propName] = +time;
+  }
+  console.log(`===== done parsing output =====`);
+  return result;
+}
+
+function averageResults(results) {
+  const averages = {};
+  for (const result of results) {
+    for (const [name, time] of Object.entries(result)) {
+      if (!averages[name]) {
+        averages[name] = time;
+      }
+      averages[name] += time;
+    }
+  }
+  for (const [name, time] of Object.entries(averages)) {
+    averages[name] = time / results.length;
+  }
+  return averages;
 }
