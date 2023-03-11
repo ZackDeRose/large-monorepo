@@ -42,7 +42,7 @@ function getInstalledNxVersion() {
 
 function runNxVersion(version) {
   console.log('installing latest nx version based on version: ', version);
-  cp.execSync(`npm add -D nx@~${version}`);
+  cp.execSync(`npm add -D nx@${version}`);
   const nxVersion = getInstalledNxVersion();
   console.log('actual version: ', nxVersion);
 
@@ -112,15 +112,21 @@ function runNxVersion(version) {
 }
 
 const versions = [
-  '15.0.0',
-  '15.1.0',
-  '15.2.0',
-  '15.3.0',
-  '15.4.0',
-  '15.5.0',
-  '15.6.0',
-  '15.7.0',
+  // '15.0.0',
+  // '15.1.0',
+  // '15.2.0',
+  // '15.3.0',
+  // '15.4.0',
+  // '15.5.0',
+  // '15.6.0',
+  // '15.7.0',
   '15.8.0',
+  '15.8.1',
+  '15.8.2',
+  '15.8.3',
+  '15.8.4',
+  '15.8.5',
+  '15.8.6',
 ];
 
 for (const version of versions) {
